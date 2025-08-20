@@ -1,30 +1,52 @@
+// src/services/api.ts
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API = axios.create({
-  baseURL: "http://localhost:4000/api", // backend base url
-  headers: {
-    "Content-Type": "application/json",
-  },
+/** ---- Local backend (keep for login & protected routes) ---- **/
+const LOCAL = axios.create({
+  baseURL: "http://localhost:4000/api",
+  headers: { "Content-Type": "application/json" },
 });
 
-// Interceptor to attach token automatically if stored
-API.interceptors.request.use(async (config) => {
+LOCAL.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-export const loginUser = async (email: string, password: string) => {
-  const response = await API.post("/login", { email, password });
-  return response.data;
+export const loginUser = async (username: string, password: string) => {
+  const res = await LOCAL.post("/login", { username, password });
+  return res.data; // { token }
 };
 
+/** ---- Public API for todos analytics ---- **/
 export const fetchTodos = async () => {
-  const response = await API.get("/todos");
-  return response.data;
+  const res = await axios.get("https://jsonplaceholder.typicode.com/todos");
+  return res.data as Array<{ userId: number; id: number; title: string; completed: boolean }>;
 };
 
-export default API;
+export const getTodoAnalytics = async () => {
+  const todos = await fetchTodos();
+
+  // Completed vs Pending
+  const completed = todos.filter((t) => t.completed).length;
+  const pending = todos.length - completed;
+
+  // Todos per user
+  const perUser: Record<number, number> = {};
+  todos.forEach((t) => {
+    perUser[t.userId] = (perUser[t.userId] || 0) + 1;
+  });
+
+  return {
+    pieData: [
+      { name: "Completed", value: completed },
+      { name: "Pending", value: pending },
+    ],
+    barData: Object.entries(perUser).map(([userId, count]) => ({
+      userId: `U${userId}`,
+      tasks: count as number,
+    })),
+    total: todos.length,
+  };
+};

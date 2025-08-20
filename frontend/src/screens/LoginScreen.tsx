@@ -1,33 +1,38 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { loginUser } from "../services/api"; // import API call
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+import { loginUser } from "../services/api";
+import theme from "../theme";
 
-const LoginScreen = () => {
-  const navigation = useNavigation<any>();
-  const [email, setEmail] = useState("");
+export default function LoginScreen({ navigation, setToken }: any) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async () => {
     try {
-      const data = await loginUser(email, password);
-      await AsyncStorage.setItem("token", data.token); // save token
-      navigation.replace("Dashboard"); // navigate to dashboard
-    } catch (error: any) {
-      Alert.alert("Login Failed", error.response?.data?.message || "Try again");
+      const res = await loginUser(username, password);
+      console.log("Login response:", res);
+
+      if (res?.token) {
+        setToken(res.token);
+        navigation.navigate("Dashboard"); // ✅ safe navigation
+      } else {
+        setError("Invalid credentials");
+      }
+    } catch (err) {
+      setError("Invalid credentials");
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tasker Login</Text>
+      <Text style={styles.title}>Login</Text>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
       />
       <TextInput
         style={styles.input}
@@ -36,21 +41,36 @@ const LoginScreen = () => {
         secureTextEntry
         onChangeText={setPassword}
       />
-      <Button title="Login" onPress={handleLogin} />
+      <Button title="Login" onPress={handleLogin} color={theme.colors.primary} />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
-  title: { fontSize: 24, marginBottom: 20, textAlign: "center" },
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    justifyContent: "center",
+    padding: theme.spacing.lg,
+  },
+  title: {
+    fontSize: theme.typography.title,
+    fontWeight: "bold",
+    marginBottom: theme.spacing.md,
+    color: theme.colors.text,
+    textAlign: "center",
+  },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    marginBottom: 10,
-    padding: 10,
-    borderRadius: 5,
+    borderColor: theme.colors.muted,
+    borderRadius: theme.borderRadius,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.card,
+  },
+  error: {
+    color: theme.colors.danger,
+    marginBottom: theme.spacing.sm,
+    textAlign: "center",
   },
 });
-
-export default LoginScreen;

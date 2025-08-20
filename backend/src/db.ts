@@ -21,7 +21,7 @@ export async function initDB() {
   // Insert a default test user if not exists
   await db.run(
     `INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)`,
-    ["admin", "password123"]
+    ["admin", "password123"] 
   );
 
   return db;

@@ -1,24 +1,68 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList } from "react-native";
-import { apiRequest } from "../services/api";
+import { View, Text, FlatList, StyleSheet, Button } from "react-native";
+import { fetchTodos } from "../services/api";
+import theme from "../theme";
 
-export default function DashboardScreen({ navigation }: any) {
+interface DashboardProps {
+  setToken: (token: string | null) => void;
+}
+
+export default function Dashboard({ setToken }: DashboardProps) {
   const [todos, setTodos] = useState<any[]>([]);
 
   useEffect(() => {
-    apiRequest("/todos")
-      .then(setTodos)
-      .catch(console.error);
+    fetchTodos().then(setTodos).catch(console.error);
   }, []);
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold" }}>Your Todos</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Dashboard</Text>
+
       <FlatList
         data={todos}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <Text>- {item.title}</Text>}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.todoItem,
+              {
+                borderLeftColor: item.completed
+                  ? theme.colors.success
+                  : theme.colors.danger,
+              },
+            ]}
+          >
+            <Text style={styles.todoText}>{item.title}</Text>
+          </View>
+        )}
       />
+
+      <Button title="Logout" color={theme.colors.danger} onPress={() => setToken(null)} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
+  },
+  title: {
+    fontSize: theme.typography.title,
+    fontWeight: "bold",
+    marginBottom: theme.spacing.md,
+    color: theme.colors.text,
+  },
+  todoItem: {
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    borderRadius: theme.borderRadius,
+    borderLeftWidth: 5,
+  },
+  todoText: {
+    fontSize: theme.typography.body,
+    color: theme.colors.text,
+  },
+});
